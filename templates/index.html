@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Music 专辑爬虫</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 苹果系统字体 */
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* 动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .animate-slide-up {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        /* 苹果蓝 */
+        .bg-apple-blue {
+            background-color: #007AFF;
+        }
+
+        .text-apple-blue {
+            color: #007AFF;
+        }
+
+        .hover\:bg-apple-blue-dark:hover {
+            background-color: #0056D3;
+        }
+
+        /* 磨砂玻璃效果 */
+        .glass {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* 卡片悬停效果 */
+        .album-card {
+            transition: all 0.3s ease;
+        }
+
+        .album-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        /* 按钮禁用状态 */
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 标签切换 */
+        .tab-active {
+            background-color: #007AFF;
+            color: white;
+        }
+
+        .tab-inactive {
+            background-color: transparent;
+            color: #007AFF;
+        }
+
+        .tab-inactive:hover {
+            background-color: rgba(0, 122, 255, 0.1);
+        }
+
+        /* 进度条动画 */
+        @keyframes progress-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .progress-pulse {
+            animation: progress-pulse 1.5s ease-in-out infinite;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #F5F5F7;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #C1C1C1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A1A1A1;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900 min-h-screen">
+    <!-- 顶部导航 -->
+    <nav class="glass fixed top-0 left-0 right-0 z-50 border-b border-gray-200">
+        <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 bg-apple-blue rounded-lg flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
+                    </svg>
+                </div>
+                <span class="font-semibold text-gray-900">Apple Music Scraper</span>
+            </div>
+            <a href="https://github.com" target="_blank" class="text-gray-500 hover:text-gray-700 transition-colors">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.37.6.11.82-.26.82-.58v-2.03c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.17 0 0 1-.32 3.3 1.23a11.5 11.5 0 016 0c2.28-1.55 3.29-1.23 3.29-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.22.7.82.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"></path>
+                </svg>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="pt-14">
+        <!-- Hero 区域 -->
+        <section class="bg-[#F5F5F7] py-16 px-6">
+            <div class="max-w-3xl mx-auto text-center">
+                <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
+                    Apple Music 专辑爬虫
+                </h1>
+                <p class="text-lg text-gray-500 mb-8">
+                    快速抓取 Apple Music 专辑信息，支持导出 JSON 和 Excel
+                </p>
+
+                <!-- 模式切换标签 -->
+                <div class="inline-flex bg-white rounded-full p-1 shadow-sm mb-6">
+                    <button id="tab-single" class="tab-active px-6 py-2 rounded-full text-sm font-medium transition-all duration-200">
+                        单条抓取
+                    </button>
+                    <button id="tab-batch" class="tab-inactive px-6 py-2 rounded-full text-sm font-medium transition-all duration-200">
+                        批量抓取
+                    </button>
+                </div>
+
+                <!-- 单条模式输入框 -->
+                <div id="input-single" class="max-w-xl mx-auto">
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="url-single"
+                            placeholder="粘贴 Apple Music 专辑链接..."
+                            class="w-full px-5 py-4 pr-32 rounded-2xl border border-gray-200 focus:border-apple-blue focus:ring-2 focus:ring-apple-blue/20 outline-none text-base transition-all"
+                        >
+                        <button
+                            id="btn-scrape-single"
+                            class="absolute right-2 top-2 bottom-2 bg-apple-blue hover:bg-apple-blue-dark text-white px-5 rounded-xl font-medium transition-all duration-200 flex items-center gap-2"
+                        >
+                            <span>抓取</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 批量模式输入框 -->
+                <div id="input-batch" class="max-w-xl mx-auto hidden">
+                    <textarea
+                        id="urls-batch"
+                        rows="4"
+                        placeholder="每行输入一个链接，最多 50 个..."
+                        class="w-full px-5 py-4 rounded-2xl border border-gray-200 focus:border-apple-blue focus:ring-2 focus:ring-apple-blue/20 outline-none text-base transition-all resize-none"
+                    ></textarea>
+                    <div class="flex items-center justify-between mt-3">
+                        <div class="text-sm text-gray-400">
+                            已输入 <span id="url-count">0</span> 个链接
+                        </div>
+                        <button
+                            id="btn-scrape-batch"
+                            class="bg-apple-blue hover:bg-apple-blue-dark text-white px-6 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-2"
+                        >
+                            <span>批量抓取</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 加载状态 -->
+        <section id="loading-section" class="hidden py-12 px-6">
+            <div class="max-w-2xl mx-auto">
+                <div class="bg-white rounded-2xl shadow-lg p-8">
+                    <div class="flex items-center justify-center mb-4">
+                        <div class="w-10 h-10 border-3 border-apple-blue border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                    <p id="loading-text" class="text-center text-gray-600">正在抓取...</p>
+
+                    <!-- 批量进度 -->
+                    <div id="batch-progress" class="hidden mt-6">
+                        <div class="flex justify-between text-sm text-gray-500 mb-2">
+                            <span id="progress-text">0 / 0</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div id="progress-bar" class="h-full bg-apple-blue rounded-full progress-pulse" style="width: 0%"></div>
+                        </div>
+                        <p id="current-url" class="mt-3 text-xs text-gray-400 truncate text-center"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 结果展示区 -->
+        <section id="results-section" class="hidden py-12 px-6">
+            <div class="max-w-4xl mx-auto">
+                <!-- 批量统计 -->
+                <div id="batch-stats" class="hidden mb-6 bg-white rounded-2xl shadow-sm p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold">批量抓取完成</h3>
+                            <p class="text-gray-500 text-sm mt-1" id="stats-detail"></p>
+                        </div>
+                        <div class="flex gap-4 text-center">
+                            <div>
+                                <div class="text-2xl font-bold text-green-500" id="stats-success">0</div>
+                                <div class="text-xs text-gray-400">成功</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-red-500" id="stats-fail">0</div>
+                                <div class="text-xs text-gray-400">失败</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 专辑列表 -->
+                <div id="albums-container" class="space-y-6">
+                    <!-- 动态插入专辑卡片 -->
+                </div>
+
+                <!-- 下载按钮 -->
+                <div id="download-section" class="mt-8 flex justify-center gap-4">
+                    <button id="btn-download-json" class="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span id="json-btn-text">下载 JSON</span>
+                    </button>
+                    <button id="btn-download-excel" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span id="excel-btn-text">下载 Excel</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 使用说明 -->
+        <section class="py-16 px-6 bg-[#F5F5F7]">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold text-center mb-12">如何使用</h2>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="w-14 h-14 bg-apple-blue rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold mb-2">1. 复制链接</h3>
+                        <p class="text-gray-500 text-sm">在 Apple Music 网页版中找到专辑，复制浏览器地址栏的链接</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-14 h-14 bg-apple-blue rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold mb-2">2. 粘贴抓取</h3>
+                        <p class="text-gray-500 text-sm">将链接粘贴到输入框，点击抓取按钮，等待数据获取完成</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-14 h-14 bg-apple-blue rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold mb-2">3. 导出数据</h3>
+                        <p class="text-gray-500 text-sm">抓取完成后，可以下载 JSON 或 Excel 格式的数据文件</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 页脚 -->
+        <footer class="py-8 px-6 border-t border-gray-200">
+            <div class="max-w-4xl mx-auto text-center text-gray-400 text-sm">
+                <p>仅供学习和个人使用，请遵守 Apple Music 服务条款</p>
+            </div>
+        </footer>
+    </main>
+
+    <!-- 错误提示 Toast -->
+    <div id="error-toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-xl shadow-lg transform -translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span id="error-message"></span>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
