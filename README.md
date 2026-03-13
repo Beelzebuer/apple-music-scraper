@@ -48,7 +48,7 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/apple-music-scraper.git
+git clone https://github.com/Beelzebuer/apple-music-scraper.git
 cd apple-music-scraper
 
 # 安装依赖
